@@ -3,9 +3,9 @@ import {
   useEquipmentInfo,
   getTooltipContent,
   useDnDAutocomplete,
-  useFeatureInfo, // ✅ new hook for class features
+  useFeatureInfo,
 } from "../hooks/useDnDAPI";
-import { featDescriptions } from "../data/featDescriptions"; // still local & valid
+import { featDescriptions } from "../data/featDescriptions";
 
 // Utility to safely create API slugs
 const slugify = (name) =>
@@ -166,13 +166,21 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
     return () => clearTimeout(timeout);
   }, [stats, ac, equipment, feats, skills, inventory]);
 
-  // Equipment tooltip hooks
+  // ✅ Hooks for each equipment slot (moved outside of .map())
+  const headInfo = useEquipmentInfo(equipment.head);
   const armorInfo = useEquipmentInfo(equipment.armor);
-  const offhandInfo = useEquipmentInfo(equipment.offHand);
   const mainHandInfo = useEquipmentInfo(equipment.mainHand);
+  const offHandInfo = useEquipmentInfo(equipment.offHand);
   const trinketInfo = useEquipmentInfo(equipment.trinket);
 
-  // ✅ Single hook for hovered skill/class feature
+  const equipmentSlots = [
+    { key: "head", label: "Head", info: headInfo },
+    { key: "armor", label: "Armor", info: armorInfo },
+    { key: "mainHand", label: "Main-Hand", info: mainHandInfo },
+    { key: "offHand", label: "Off-Hand", info: offHandInfo },
+    { key: "trinket", label: "Trinket", info: trinketInfo },
+  ];
+
   const hoveredFeatureInfo = useFeatureInfo(hoveredItem);
 
   // Calculate AC
@@ -180,7 +188,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   useEffect(() => {
     let baseAC = 10 + getModifier(stats.dexterity || 10);
     const armorData = armorInfo.data;
-    const offhandData = offhandInfo.data;
+    const offhandData = offHandInfo.data;
 
     if (armorData?.armor_class) {
       const acData = armorData.armor_class;
@@ -202,7 +210,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
     }
 
     setAc(baseAC);
-  }, [armorInfo.data, offhandInfo.data, stats.dexterity, equipment]);
+  }, [armorInfo.data, offHandInfo.data, stats.dexterity, equipment]);
 
   // Stat modifiers
   const adjustStat = (stat, delta) =>
@@ -385,13 +393,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-2">
                 EQUIPMENT
               </h3>
-              {[
-                { key: "head", label: "Head", hook: useEquipmentInfo(equipment.head) },
-                { key: "armor", label: "Armor", hook: useEquipmentInfo(equipment.armor) },
-                { key: "mainHand", label: "Main-Hand", hook: useEquipmentInfo(equipment.mainHand) },
-                { key: "offHand", label: "Off-Hand", hook: useEquipmentInfo(equipment.offHand) },
-                { key: "trinket", label: "Trinket", hook: useEquipmentInfo(equipment.trinket) },
-              ].map(({ key, label, hook }) => (
+              {equipmentSlots.map(({ key, label, info }) => (
                 <div
                   key={key}
                   className="mb-2 relative group"
@@ -408,25 +410,20 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                     onChange={(val) => handleEquipChange(key, val)}
                     placeholder={label}
                   />
-                  {hook.data && hoveredEquip === key && (
+                  {hoveredEquip === key && (
                     <div
                       className={`absolute left-0 ${
                         tooltipPosition === "above"
                           ? "bottom-full mb-2"
                           : "top-full mt-2"
-                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out opacity-100`}
+                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50`}
                       style={{
                         position: "absolute",
                         whiteSpace: "normal",
                         pointerEvents: "auto",
                       }}
                     >
-                      <strong className="block mb-1">{equipment[key]}</strong>
-                      {getTooltipContent({
-                        loading: hook.loading,
-                        data: hook.data,
-                        error: hook.error,
-                      })}
+                      {getTooltipContent({ loading: info.loading, data: info.data, error: info.error })}
                     </div>
                   )}
                 </div>
