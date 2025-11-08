@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useEquipmentInfo, getTooltipContent } from "../hooks/useDnDAPI";
-import { useDnDAutocomplete } from "../hooks/useDnDAutocomplete";
+import {
+  useEquipmentInfo,
+  getTooltipContent,
+  useDnDAutocomplete,
+  useFeatureInfo, // 🆕 imported properly
+} from "../hooks/useDnDAPI";
 import { featDescriptions } from "../data/featDescriptions";
+import { abilityDescriptions } from "../data/abilityDescriptions";
 
 // Utility to safely create API slugs
 const slugify = (name) =>
@@ -113,6 +118,22 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
 
   const prevCharName = useRef(character.name);
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [hoveredEquip, setHoveredEquip] = useState(null);
+
+  // 🧭 Tooltip positioning
+  const [tooltipPosition, setTooltipPosition] = useState("below");
+  const handleTooltipPosition = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tooltipHeight = 220;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    if (spaceBelow < tooltipHeight && spaceAbove > spaceBelow) {
+      setTooltipPosition("above");
+    } else {
+      setTooltipPosition("below");
+    }
+  };
 
   // Reset character state when switching tabs
   useEffect(() => {
@@ -146,6 +167,9 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   const offhandInfo = useEquipmentInfo(equipment.offHand);
   const mainHandInfo = useEquipmentInfo(equipment.mainHand);
   const trinketInfo = useEquipmentInfo(equipment.trinket);
+
+  // ✅ Safe Hook: single instance for hovered skill/class feature
+  const hoveredFeatureInfo = useFeatureInfo(hoveredItem);
 
   // Calculate AC
   const getModifier = (val) => Math.floor((val - 10) / 2);
@@ -215,9 +239,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
             `https://www.dnd5eapi.co/api/feats/${slugify(name)}`
           );
           if (res.ok) details[name] = await res.json();
-        } catch {
-          // Fallback handled by featDescriptions
-        }
+        } catch {}
       }
       setFeatDetails(details);
     }
@@ -233,9 +255,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
             `https://www.dnd5eapi.co/api/spells/${slugify(name)}`
           );
           if (res.ok) details[name] = await res.json();
-        } catch {
-          // fallback: no tooltip data
-        }
+        } catch {}
       }
       setSpellDetails(details);
     }
@@ -289,34 +309,55 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
           {/* STATS + EQUIPMENT */}
           <div className="flex flex-col lg:flex-row justify-between gap-3 flex-1">
             {/* STATS */}
-            <div className="bg-[#e6e08c] border border-gray-700 rounded-md p-3 w-full lg:w-60">
-              <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-2">STATS</h3>
-              <div className="text-center font-semibold text-lg mb-2">
-                Armor Class (AC): <span className="text-xl font-bold text-black">{ac}</span>
+            <div className="bg-[#e6e08c] border border-gray-700 rounded-md p-2 w-full lg:w-60">
+              <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-1 text-sm tracking-wide">
+                STATS
+              </h3>
+              <div className="text-center font-semibold text-base mb-1">
+                AC: <span className="text-lg font-bold text-black">{ac}</span>
               </div>
-              {Object.entries(stats).map(([key, val]) => {
-                if (key.toLowerCase() === "ac" || key.toLowerCase() === "level") return null;
-                const mod = getModifier(val);
-                const formatted = mod >= 0 ? `+${mod}` : mod;
-                return (
-                  <div key={key} className="flex flex-col items-center mb-3 border-b border-gray-400 pb-1">
-                    <div className={`border rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold mb-1 shadow ${getModColor(mod)}`}>
-                      {formatted}
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1 text-sm">
+                {Object.entries(stats).map(([key, val]) => {
+                  if (key.toLowerCase() === "ac" || key.toLowerCase() === "level") return null;
+                  const mod = getModifier(val);
+                  const formatted = mod >= 0 ? `+${mod}` : mod;
+                  return (
+                    <div
+                      key={key}
+                      className="flex flex-col items-center justify-center border border-gray-400 rounded-md py-1 shadow-sm bg-[#f6f3c1]"
+                    >
+                      <div
+                        className={`border rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold mb-0.5 ${getModColor(mod)}`}
+                      >
+                        {formatted}
+                      </div>
+                      <span className="capitalize text-xs font-semibold">{key}</span>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <button
+                          onClick={() => adjustStat(key, -1)}
+                          className="bg-[#b33] text-white rounded px-1 text-xs leading-none"
+                        >
+                          −
+                        </button>
+                        <span className="font-mono w-5 text-center text-sm">{val}</span>
+                        <button
+                          onClick={() => adjustStat(key, 1)}
+                          className="bg-[#2d7a2d] text-white rounded px-1 text-xs leading-none"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                    <span className="capitalize font-semibold">{key}</span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <button onClick={() => adjustStat(key, -1)} className="bg-[#b33] text-white rounded px-2">−</button>
-                      <span className="font-mono w-6 text-center text-lg">{val}</span>
-                      <button onClick={() => adjustStat(key, 1)} className="bg-[#2d7a2d] text-white rounded px-2">+</button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             {/* EQUIPMENT */}
             <div className="bg-[#c4f18c] border border-gray-700 rounded-md p-3 w-full lg:w-60">
-              <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-2">EQUIPMENT</h3>
+              <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-2">
+                EQUIPMENT
+              </h3>
               {[
                 { key: "head", label: "Head", hook: useEquipmentInfo(equipment.head) },
                 { key: "armor", label: "Armor", hook: useEquipmentInfo(equipment.armor) },
@@ -324,7 +365,15 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                 { key: "offHand", label: "Off-Hand", hook: useEquipmentInfo(equipment.offHand) },
                 { key: "trinket", label: "Trinket", hook: useEquipmentInfo(equipment.trinket) },
               ].map(({ key, label, hook }) => (
-                <div key={key} className="mb-2 relative group">
+                <div
+                  key={key}
+                  className="mb-2 relative group"
+                  onMouseEnter={(e) => {
+                    setHoveredEquip(key);
+                    handleTooltipPosition(e);
+                  }}
+                  onMouseLeave={() => setHoveredEquip(null)}
+                >
                   <label className="capitalize font-semibold">{label}:</label>
                   <AutoInput
                     endpoint="equipment"
@@ -332,10 +381,15 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                     onChange={(val) => handleEquipChange(key, val)}
                     placeholder={label}
                   />
-
-                  {/* Tooltip appears when hovering the input or if there's info */}
-                  {hook.data && (
-                    <div className="absolute left-0 top-full z-10 hidden group-hover:block bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg mt-1">
+                  {hook.data && hoveredEquip === key && (
+                    <div
+                      className={`absolute left-0 ${
+                        tooltipPosition === "above"
+                          ? "bottom-full mb-2"
+                          : "top-full mt-2"
+                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out opacity-100`}
+                      style={{ position: "absolute", whiteSpace: "normal", pointerEvents: "auto" }}
+                    >
                       <strong className="block mb-1">{equipment[key]}</strong>
                       {getTooltipContent({ loading: hook.loading, data: hook.data, error: hook.error })}
                     </div>
@@ -350,7 +404,9 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 text-sm">
           {/* FEATS */}
           <div className="bg-[#f7a468] border border-gray-700 rounded-md p-2">
-            <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-1">FEATS</h3>
+            <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-1">
+              FEATS
+            </h3>
             <AutoInput
               endpoint="feats"
               value=""
@@ -362,13 +418,27 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               {feats.map((f) => (
                 <li
                   key={f}
-                  className="flex justify-between items-center relative"
-                  onMouseEnter={() => setHoveredItem(f)}
+                  className="flex justify-between items-center relative group"
+                  onMouseEnter={(e) => {
+                    setHoveredItem(f);
+                    handleTooltipPosition(e);
+                  }}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
                   <span>{f}</span>
                   {hoveredItem === f && (
-                    <div className="absolute top-full left-0 bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-10">
+                    <div
+                      className={`absolute left-0 ${
+                        tooltipPosition === "above" ? "bottom-full mb-2" : "top-full mt-2"
+                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out ${
+                        hoveredItem === f ? "opacity-100" : "opacity-0"
+                      }`}
+                      style={{
+                        position: "absolute",
+                        whiteSpace: "normal",
+                        pointerEvents: "auto",
+                      }}
+                    >
                       <strong className="block mb-1">{f}</strong>
                       {featDetails[f]
                         ? getTooltipContent({ loading: false, data: featDetails[f] })
@@ -390,29 +460,55 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
 
           {/* SKILLS & SPELLS */}
           <div className="bg-[#8bf7ee] border border-gray-700 rounded-md p-2">
-            <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-1">SKILLS & SPELLS</h3>
+            <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-1">
+              SKILLS & SPELLS
+            </h3>
             <AutoInput
               endpoint="spells"
               value=""
               onChange={() => {}}
               onAdd={(name) => handleAdd(setSkills, skills, name)}
-              placeholder="Enter a Skill or Spell"
+              placeholder="Enter a Skill, Spell, or Class Feature"
             />
             <ul className="space-y-1 mt-1">
               {skills.map((s) => (
                 <li
                   key={s}
-                  className="flex justify-between items-center relative"
-                  onMouseEnter={() => setHoveredItem(s)}
+                  className="flex justify-between items-center relative group"
+                  onMouseEnter={(e) => {
+                    setHoveredItem(s);
+                    handleTooltipPosition(e);
+                  }}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
                   <span>{s}</span>
                   {hoveredItem === s && (
-                    <div className="absolute top-full left-0 bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-10">
+                    <div
+                      className={`absolute left-0 ${
+                        tooltipPosition === "above"
+                          ? "bottom-full mb-2"
+                          : "top-full mt-2"
+                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out ${
+                        hoveredItem === s ? "opacity-100" : "opacity-0"
+                      }`}
+                      style={{
+                        position: "absolute",
+                        whiteSpace: "normal",
+                        pointerEvents: "auto",
+                      }}
+                    >
                       <strong className="block mb-1">{s}</strong>
                       {spellDetails[s]
                         ? getTooltipContent({ loading: false, data: spellDetails[s] })
-                        : "No description available for this spell or skill."}
+                        : hoveredFeatureInfo.data
+                        ? getTooltipContent({ loading: false, data: hoveredFeatureInfo.data })
+                        : abilityDescriptions[s]
+                        ? (
+                          <div
+                            dangerouslySetInnerHTML={{ __html: abilityDescriptions[s] }}
+                          />
+                        )
+                        : "No description available for this spell or ability."}
                     </div>
                   )}
                   <button
@@ -428,7 +524,9 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
 
           {/* INVENTORY */}
           <div className="bg-[#db9d18] border border-gray-700 rounded-md p-2">
-            <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-1">INVENTORY</h3>
+            <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-1">
+              INVENTORY
+            </h3>
             <AutoInput
               endpoint="magic-items"
               value=""
@@ -440,13 +538,29 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               {inventory.map((i) => (
                 <li
                   key={i}
-                  className="flex justify-between items-center relative"
-                  onMouseEnter={() => setHoveredItem(i)}
+                  className="flex justify-between items-center relative group"
+                  onMouseEnter={(e) => {
+                    setHoveredItem(i);
+                    handleTooltipPosition(e);
+                  }}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
                   <span>{i}</span>
                   {hoveredItem === i && (
-                    <div className="absolute top-full left-0 bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-10">
+                    <div
+                      className={`absolute left-0 ${
+                        tooltipPosition === "above"
+                          ? "bottom-full mb-2"
+                          : "top-full mt-2"
+                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out ${
+                        hoveredItem === i ? "opacity-100" : "opacity-0"
+                      }`}
+                      style={{
+                        position: "absolute",
+                        whiteSpace: "normal",
+                        pointerEvents: "auto",
+                      }}
+                    >
                       <strong className="block mb-1">{i}</strong>
                       {itemDetails[i]
                         ? getTooltipContent({ loading: false, data: itemDetails[i] })

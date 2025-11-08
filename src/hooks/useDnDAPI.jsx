@@ -1,181 +1,116 @@
 import { useState, useEffect } from "react";
 
-// Normalize names like "Chain Mail" → "chain-mail"
-function normalizeName(name) {
-  if (!name) return "";
-  return name.toLowerCase().trim().replace(/[’'"]/g, "").replace(/\s+/g, "-");
-}
+const API_BASE = "https://www.dnd5eapi.co/api";
 
-/**
- * Reusable API fetcher with { data, error, loading }
- * Handles 404s and network failures gracefully.
- */
-function useDnDAPI(endpoint, name) {
+/** Generic fetcher hook for any endpoint */
+export function useDnDAPI(endpoint, name) {
   const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!name) {
-      setData(null);
-      return;
-    }
+    if (!name) return;
 
-    const slug = normalizeName(name);
-    const url = `https://www.dnd5eapi.co/api/${endpoint}/${slug}`;
-    let cancelled = false;
-
-    async function fetchData() {
+    const fetchData = async () => {
       setLoading(true);
+      setError(null);
+
       try {
-        const res = await fetch(url);
-        if (!res.ok) {
-          if (res.status !== 404 && !cancelled) {
-            setError(`Failed to fetch ${endpoint}: ${res.statusText}`);
-          }
-          setData(null);
-        } else {
-          const json = await res.json();
-          if (!cancelled) setData(json);
-        }
+        const slug = name.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-");
+        const response = await fetch(`${API_BASE}/${endpoint}/${slug}`);
+        if (!response.ok) throw new Error(`Failed to fetch ${endpoint} data`);
+        const json = await response.json();
+        setData(json);
       } catch (err) {
-        if (!cancelled) {
-          setError(err.message);
-          setData(null);
-        }
+        setError(err.message);
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
-    }
+    };
 
     fetchData();
-    return () => {
-      cancelled = true;
-    };
   }, [endpoint, name]);
 
-  return { data, error, loading };
+  return { data, loading, error };
 }
 
-// Specialized API hooks
-export function useEquipmentInfo(name) {
-  return useDnDAPI("equipment", name);
-}
-export function useMagicItemInfo(name) {
-  return useDnDAPI("magic-items", name);
-}
-export function useFeatInfo(name) {
-  return useDnDAPI("feats", name);
-}
-export function useSpellInfo(name) {
-  return useDnDAPI("spells", name);
-}
+/** Specialized hooks */
+export const useEquipmentInfo = (name) => useDnDAPI("equipment", name);
+export const useMagicItemInfo = (name) => useDnDAPI("magic-items", name);
+export const useFeatInfo = (name) => useDnDAPI("feats", name);
+export const useSpellInfo = (name) => useDnDAPI("spells", name);
+export const useFeatureInfo = (name) => useDnDAPI("features", name); // 🆕 new class feature hook
 
-/**
- * Format raw D&D item/spell/feat data into readable lines.
- */
-export function formatItemDetails(item) {
-  if (!item) return [];
-  const lines = [];
-
-  // Equipment
-  if (item.equipment_category) lines.push(`${item.equipment_category.name} Item`);
-  if (item.armor_class) {
-    const base = item.armor_class.base ?? 10;
-    const dex = item.armor_class.dex_bonus
-      ? "(+Dex modifier)"
-      : "(Dex bonus not applied)";
-    lines.push(`Base AC ${base} ${dex}`);
-  }
-  if (item.armor_category) lines.push(`${item.armor_category} Armor`);
-  if (item.str_minimum) lines.push(`Requires STR ${item.str_minimum}`);
-  if (item.stealth_disadvantage) lines.push("Disadvantage on Stealth checks");
-  if (item.damage) {
-    const dmg = `${item.damage.dice_count || ""}d${item.damage.dice_value || ""} ${
-      item.damage.damage_type?.name || ""
-    }`;
-    lines.push(`Damage: ${dmg}`);
-  }
-  if (item.cost) lines.push(`Cost: ${item.cost.quantity} ${item.cost.unit}`);
-  if (item.weight) lines.push(`Weight: ${item.weight} lbs`);
-
-  // Spells
-  if (item.level !== undefined && item.school)
-    lines.push(`Level ${item.level} ${item.school.name} spell`);
-  if (item.casting_time) lines.push(`Casting Time: ${item.casting_time}`);
-  if (item.range && typeof item.range === "string")
-    lines.push(`Range: ${item.range}`);
-  if (item.duration) lines.push(`Duration: ${item.duration}`);
-  if (item.components) lines.push(`Components: ${item.components.join(", ")}`);
-
-  // Feats
-  if (item.prerequisites && item.prerequisites.length > 0) {
-    const reqs = item.prerequisites.map((p) => Object.values(p).join(" ")).join(", ");
-    lines.push(`Prerequisites: ${reqs}`);
-  }
-
-  // Description
-  if (item.desc && Array.isArray(item.desc)) lines.push(...item.desc);
-  if (lines.length === 0) lines.push(`No additional details available for ${item.name}.`);
-
-  return lines;
-}
-
-/**
- * Helper: Returns tooltip content (loading, error, or formatted lines)
- */
+/** Tooltip rendering helper */
 export function getTooltipContent({ loading, data, error }) {
-  if (loading) return <p className="italic text-gray-600">Loading...</p>;
-  if (error)
-    return <p className="italic text-red-700">Error: {error}</p>;
-  if (!data)
-    return <p className="italic text-gray-600">No description available.</p>;
+  if (loading) return <p><em>Loading...</em></p>;
+  if (error) return <p><em>Error: {error}</em></p>;
+  if (!data) return <p><em>No data found.</em></p>;
 
-  return (
-    <ul className="list-disc ml-4">
-      {formatItemDetails(data).map((line, i) => (
-        <li key={i}>{line}</li>
-      ))}
-    </ul>
-  );
+  // For spells, feats, and features, use .desc if available
+  if (data.desc && Array.isArray(data.desc)) {
+    return (
+      <div
+        dangerouslySetInnerHTML={{
+          __html: data.desc.join("<br/><br/>"),
+        }}
+      />
+    );
+  }
+
+  // Equipment-specific details
+  if (data.equipment_category) {
+    const ac = data.armor_class
+      ? `AC: ${data.armor_class.base}${data.armor_class.dex_bonus ? " + Dex" : ""}`
+      : "";
+    const dmg =
+      data.damage && data.damage.damage_dice
+        ? `Damage: ${data.damage.damage_dice} ${data.damage.damage_type.name}`
+        : "";
+    return (
+      <div>
+        {ac && <p>{ac}</p>}
+        {dmg && <p>{dmg}</p>}
+        {data.desc && <p>{data.desc}</p>}
+      </div>
+    );
+  }
+
+  return <p><em>No description available.</em></p>;
 }
 
-/**
- * Autocomplete hook — searches API index endpoints for partial matches.
- * Usage: const { suggestions, loading } = useDnDAutocomplete("spells", query);
- */
+/** Autocomplete hook */
 export function useDnDAutocomplete(endpoint, query) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!query || query.length < 2) {
+    if (!query || query.trim().length < 2) {
       setSuggestions([]);
       return;
     }
 
-    let cancelled = false;
-    async function fetchSuggestions() {
+    const fetchSuggestions = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`https://www.dnd5eapi.co/api/${endpoint}`);
-        if (res.ok) {
-          const json = await res.json();
-          const matches = json.results
-            .filter((r) =>
-              r.name.toLowerCase().includes(query.toLowerCase())
-            )
-            .slice(0, 8);
-          if (!cancelled) setSuggestions(matches);
+        const response = await fetch(`${API_BASE}/${endpoint}`);
+        const json = await response.json();
+        if (json.results) {
+          const filtered = json.results.filter((item) =>
+            item.name.toLowerCase().includes(query.toLowerCase())
+          );
+          setSuggestions(filtered.slice(0, 20));
+        } else {
+          setSuggestions([]);
         }
       } catch {
-        if (!cancelled) setSuggestions([]);
+        setSuggestions([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
-    }
+    };
+
     fetchSuggestions();
-    return () => (cancelled = true);
   }, [endpoint, query]);
 
   return { suggestions, loading };
