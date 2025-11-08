@@ -16,7 +16,10 @@ export function useDnDAPI(endpoint, name) {
       setError(null);
 
       try {
-        const slug = name.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-");
+        const slug = name
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, "")
+          .replace(/\s+/g, "-");
         const response = await fetch(`${API_BASE}/${endpoint}/${slug}`);
         if (!response.ok) throw new Error(`Failed to fetch ${endpoint} data`);
         const json = await response.json();
@@ -39,7 +42,7 @@ export const useEquipmentInfo = (name) => useDnDAPI("equipment", name);
 export const useMagicItemInfo = (name) => useDnDAPI("magic-items", name);
 export const useFeatInfo = (name) => useDnDAPI("feats", name);
 export const useSpellInfo = (name) => useDnDAPI("spells", name);
-export const useFeatureInfo = (name) => useDnDAPI("features", name); // 🆕 new class feature hook
+export const useFeatureInfo = (name) => useDnDAPI("features", name);
 
 /** Tooltip rendering helper */
 export function getTooltipContent({ loading, data, error }) {
@@ -61,7 +64,9 @@ export function getTooltipContent({ loading, data, error }) {
   // Equipment-specific details
   if (data.equipment_category) {
     const ac = data.armor_class
-      ? `AC: ${data.armor_class.base}${data.armor_class.dex_bonus ? " + Dex" : ""}`
+      ? `AC: ${data.armor_class.base}${
+          data.armor_class.dex_bonus ? " + Dex" : ""
+        }`
       : "";
     const dmg =
       data.damage && data.damage.damage_dice
@@ -79,7 +84,7 @@ export function getTooltipContent({ loading, data, error }) {
   return <p><em>No description available.</em></p>;
 }
 
-/** Autocomplete hook */
+/** Autocomplete hook — includes Spells + Features combined */
 export function useDnDAutocomplete(endpoint, query) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -93,8 +98,47 @@ export function useDnDAutocomplete(endpoint, query) {
     const fetchSuggestions = async () => {
       setLoading(true);
       try {
+        // 🧠 Combined autocomplete for Spells + Features
+        if (endpoint === "spells") {
+          const [spellsRes, featuresRes] = await Promise.all([
+            fetch(`${API_BASE}/spells`),
+            fetch(`${API_BASE}/features`),
+          ]);
+
+          const spellsJson = await spellsRes.json();
+          const featuresJson = await featuresRes.json();
+
+          const spells = (spellsJson.results || []).filter((s) =>
+            s.name.toLowerCase().includes(query.toLowerCase())
+          );
+
+          const features = (featuresJson.results || []).filter((f) =>
+            f.name.toLowerCase().includes(query.toLowerCase())
+          );
+
+          // Merge both results with type labels
+          const combined = [
+            ...spells.map((s) => ({ ...s, source: "Spell" })),
+            ...features.map((f) => ({ ...f, source: "Feature" })),
+          ];
+
+          // Deduplicate by name
+          const unique = combined.filter(
+            (v, i, a) =>
+              a.findIndex(
+                (t) => t.name.toLowerCase() === v.name.toLowerCase()
+              ) === i
+          );
+
+          setSuggestions(unique.slice(0, 25));
+          setLoading(false);
+          return;
+        }
+
+        // 🧩 Default autocomplete for other endpoints
         const response = await fetch(`${API_BASE}/${endpoint}`);
         const json = await response.json();
+
         if (json.results) {
           const filtered = json.results.filter((item) =>
             item.name.toLowerCase().includes(query.toLowerCase())

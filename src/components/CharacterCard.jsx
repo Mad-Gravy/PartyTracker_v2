@@ -3,10 +3,9 @@ import {
   useEquipmentInfo,
   getTooltipContent,
   useDnDAutocomplete,
-  useFeatureInfo, // 🆕 imported properly
+  useFeatureInfo, // ✅ new hook for class features
 } from "../hooks/useDnDAPI";
-import { featDescriptions } from "../data/featDescriptions";
-import { abilityDescriptions } from "../data/abilityDescriptions";
+import { featDescriptions } from "../data/featDescriptions"; // still local & valid
 
 // Utility to safely create API slugs
 const slugify = (name) =>
@@ -89,10 +88,15 @@ function AutoInput({
           {suggestions.map((s, idx) => (
             <li
               key={idx}
-              className="px-2 py-1 hover:bg-[#f1e3b1] cursor-pointer"
+              className="px-2 py-1 hover:bg-[#f1e3b1] cursor-pointer flex justify-between"
               onClick={() => handleSelect(s.name)}
             >
-              {s.name}
+              <span>{s.name}</span>
+              {s.source && (
+                <span className="text-gray-500 text-xs italic">
+                  ({s.source})
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -168,7 +172,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   const mainHandInfo = useEquipmentInfo(equipment.mainHand);
   const trinketInfo = useEquipmentInfo(equipment.trinket);
 
-  // ✅ Safe Hook: single instance for hovered skill/class feature
+  // ✅ Single hook for hovered skill/class feature
   const hoveredFeatureInfo = useFeatureInfo(hoveredItem);
 
   // Calculate AC
@@ -290,19 +294,32 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
             {character.name.toUpperCase()}
           </h2>
         </div>
-
         {/* MAIN CONTENT */}
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* LEFT COLUMN - CHARACTER INFO */}
+          {/* LEFT COLUMN */}
           <div className="flex flex-col bg-[#fff9e6] border border-gray-400 rounded-md p-3 w-full lg:w-1/3 shadow-inner text-[15px]">
-            <p><strong>RACE:</strong> {character.race}</p>
-            <p><strong>CLASS:</strong> {character.class} ({character.subClass})</p>
-            <p><strong>ALIGNMENT:</strong> {character.alignment}</p>
-            <p><strong>SPECIAL ABILITY:</strong> {character.specialAbility}</p>
-            <p><strong>FAMILIAR:</strong> {character.familiar}</p>
+            <p>
+              <strong>RACE:</strong> {character.race}
+            </p>
+            <p>
+              <strong>CLASS:</strong> {character.class} ({character.subClass})
+            </p>
+            <p>
+              <strong>ALIGNMENT:</strong> {character.alignment}
+            </p>
+            <p>
+              <strong>SPECIAL ABILITY:</strong> {character.specialAbility}
+            </p>
+            <p>
+              <strong>FAMILIAR:</strong> {character.familiar}
+            </p>
             <div className="mt-3 border-t border-gray-500 pt-2">
-              <p><strong>BIO / BACKGROUND:</strong></p>
-              <p className="italic whitespace-pre-line text-sm">{character.bio}</p>
+              <p>
+                <strong>BIO / BACKGROUND:</strong>
+              </p>
+              <p className="italic whitespace-pre-line text-sm">
+                {character.bio}
+              </p>
             </div>
           </div>
 
@@ -318,7 +335,11 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               </div>
               <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1 text-sm">
                 {Object.entries(stats).map(([key, val]) => {
-                  if (key.toLowerCase() === "ac" || key.toLowerCase() === "level") return null;
+                  if (
+                    key.toLowerCase() === "ac" ||
+                    key.toLowerCase() === "level"
+                  )
+                    return null;
                   const mod = getModifier(val);
                   const formatted = mod >= 0 ? `+${mod}` : mod;
                   return (
@@ -327,11 +348,15 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                       className="flex flex-col items-center justify-center border border-gray-400 rounded-md py-1 shadow-sm bg-[#f6f3c1]"
                     >
                       <div
-                        className={`border rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold mb-0.5 ${getModColor(mod)}`}
+                        className={`border rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold mb-0.5 ${getModColor(
+                          mod
+                        )}`}
                       >
                         {formatted}
                       </div>
-                      <span className="capitalize text-xs font-semibold">{key}</span>
+                      <span className="capitalize text-xs font-semibold">
+                        {key}
+                      </span>
                       <div className="flex items-center gap-1 mt-0.5">
                         <button
                           onClick={() => adjustStat(key, -1)}
@@ -339,7 +364,9 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                         >
                           −
                         </button>
-                        <span className="font-mono w-5 text-center text-sm">{val}</span>
+                        <span className="font-mono w-5 text-center text-sm">
+                          {val}
+                        </span>
                         <button
                           onClick={() => adjustStat(key, 1)}
                           className="bg-[#2d7a2d] text-white rounded px-1 text-xs leading-none"
@@ -388,10 +415,18 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                           ? "bottom-full mb-2"
                           : "top-full mt-2"
                       } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out opacity-100`}
-                      style={{ position: "absolute", whiteSpace: "normal", pointerEvents: "auto" }}
+                      style={{
+                        position: "absolute",
+                        whiteSpace: "normal",
+                        pointerEvents: "auto",
+                      }}
                     >
                       <strong className="block mb-1">{equipment[key]}</strong>
-                      {getTooltipContent({ loading: hook.loading, data: hook.data, error: hook.error })}
+                      {getTooltipContent({
+                        loading: hook.loading,
+                        data: hook.data,
+                        error: hook.error,
+                      })}
                     </div>
                   )}
                 </div>
@@ -429,7 +464,9 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                   {hoveredItem === f && (
                     <div
                       className={`absolute left-0 ${
-                        tooltipPosition === "above" ? "bottom-full mb-2" : "top-full mt-2"
+                        tooltipPosition === "above"
+                          ? "bottom-full mb-2"
+                          : "top-full mt-2"
                       } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out ${
                         hoveredItem === f ? "opacity-100" : "opacity-0"
                       }`}
@@ -502,13 +539,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                         ? getTooltipContent({ loading: false, data: spellDetails[s] })
                         : hoveredFeatureInfo.data
                         ? getTooltipContent({ loading: false, data: hoveredFeatureInfo.data })
-                        : abilityDescriptions[s]
-                        ? (
-                          <div
-                            dangerouslySetInnerHTML={{ __html: abilityDescriptions[s] }}
-                          />
-                        )
-                        : "No description available for this spell or ability."}
+                        : "No description available for this spell or feature."}
                     </div>
                   )}
                   <button
