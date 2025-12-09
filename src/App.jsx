@@ -8,7 +8,16 @@ export default function App() {
   // ────────────────────────────────
   const [characters, setCharacters] = useState(() => {
     const saved = localStorage.getItem("characters");
-    return saved ? JSON.parse(saved) : [];
+    const initialChars = saved ? JSON.parse(saved) : [];
+
+    // Data migration: remove 'head' and 'trinket' fields from existing characters
+    return initialChars.map((char) => {
+      if (char.equipment) {
+        delete char.equipment.head;
+        delete char.equipment.trinket;
+      }
+      return char;
+    });
   });
 
   // Track which tab is active ("create" or a character name)

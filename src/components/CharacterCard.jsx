@@ -3,17 +3,8 @@ import {
   useEquipmentInfo,
   getTooltipContent,
   useDnDAutocomplete,
-  useFeatureInfo,
 } from "../hooks/useDnDAPI";
 import { featDescriptions } from "../data/featDescriptions";
-
-// Utility to safely create API slugs
-const slugify = (name) =>
-  name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-");
 
 // ─────────────────────────────────────────────
 // Autocomplete Input Component
@@ -26,11 +17,27 @@ function AutoInput({
   placeholder,
   onFocus,
   onMouseEnter,
+  localSuggestions,
 }) {
   const [query, setQuery] = useState(value || "");
-  const { suggestions, loading } = useDnDAutocomplete(endpoint, query);
+  const { suggestions: apiSuggestions, loading } = useDnDAutocomplete(
+    endpoint,
+    query,
+    !localSuggestions // Disable API hook if local suggestions are provided
+  );
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
+
+  const suggestions = localSuggestions
+    ? localSuggestions
+        .filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 20)
+    : apiSuggestions;
+
+  // Sync internal state when the external value prop changes
+  useEffect(() => {
+    setQuery(value || "");
+  }, [value]);
 
   // Close autocomplete when clicking elsewhere
   useEffect(() => {
@@ -116,13 +123,22 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   const [skills, setSkills] = useState([...(character.skillsSpells || [])]);
   const [inventory, setInventory] = useState([...(character.inventory || [])]);
 
-  const [featDetails, setFeatDetails] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [details, setDetails] = useState({
+    race: character.race || "",
+    class: character.class || "",
+    subClass: character.subClass || "",
+    alignment: character.alignment || "",
+    specialAbility: character.specialAbility || "",
+    familiar: character.familiar || "None",
+    bio: character.bio || "",
+    picture: character.picture || "",
+  });
   const [spellDetails, setSpellDetails] = useState({});
   const [itemDetails, setItemDetails] = useState({});
 
   const prevCharName = useRef(character.name);
   const [hoveredItem, setHoveredItem] = useState(null);
-  const [hoveredEquip, setHoveredEquip] = useState(null);
 
   // 🧭 Tooltip positioning
   const [tooltipPosition, setTooltipPosition] = useState("below");
@@ -148,6 +164,17 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
       setFeats([...(character.feats || [])]);
       setSkills([...(character.skillsSpells || [])]);
       setInventory([...(character.inventory || [])]);
+      setIsEditing(false); // Exit edit mode on tab switch
+      setDetails({
+        race: character.race || "",
+        class: character.class || "",
+        subClass: character.subClass || "",
+        alignment: character.alignment || "",
+        specialAbility: character.specialAbility || "",
+        familiar: character.familiar || "None",
+        bio: character.bio || "",
+        picture: character.picture || "",
+      });
       prevCharName.current = character.name;
     }
   }, [character]);
@@ -157,6 +184,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
     const timeout = setTimeout(() => {
       onUpdate(character.name, {
         stats: { ...stats, ac },
+        ...details,
         equipment,
         feats,
         skillsSpells: skills,
@@ -164,24 +192,18 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
       });
     }, 300);
     return () => clearTimeout(timeout);
-  }, [stats, ac, equipment, feats, skills, inventory]);
+  }, [stats, ac, equipment, feats, skills, inventory, details]);
 
   // ✅ Hooks for each equipment slot (moved outside of .map())
-  const headInfo = useEquipmentInfo(equipment.head);
   const armorInfo = useEquipmentInfo(equipment.armor);
   const mainHandInfo = useEquipmentInfo(equipment.mainHand);
   const offHandInfo = useEquipmentInfo(equipment.offHand);
-  const trinketInfo = useEquipmentInfo(equipment.trinket);
 
   const equipmentSlots = [
-    { key: "head", label: "Head", info: headInfo },
     { key: "armor", label: "Armor", info: armorInfo },
     { key: "mainHand", label: "Main-Hand", info: mainHandInfo },
     { key: "offHand", label: "Off-Hand", info: offHandInfo },
-    { key: "trinket", label: "Trinket", info: trinketInfo },
   ];
-
-  const hoveredFeatureInfo = useFeatureInfo(hoveredItem);
 
   // Calculate AC
   const getModifier = (val) => Math.floor((val - 10) / 2);
@@ -223,6 +245,23 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   const handleEquipChange = (slot, value) =>
     setEquipment((prev) => ({ ...prev, [slot]: value }));
 
+  // Details handler
+  const handleDetailChange = (e) =>
+    setDetails((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handlePictureUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        setDetails((prev) => ({
+          ...prev,
+          picture: loadEvent.target.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   // Add / remove list entries
   const handleAdd = (setter, list, val) => {
     const trimmed = val.trim();
@@ -241,25 +280,15 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
     return "bg-red-400 border-red-700 text-black";
   };
 
-  // Fetch API tooltips
-  useEffect(() => {
-    async function fetchFeats() {
-      const details = {};
-      for (const name of feats) {
-        try {
-          const res = await fetch(
-            `https://www.dnd5eapi.co/api/feats/${slugify(name)}`
-          );
-          if (res.ok) details[name] = await res.json();
-        } catch {}
-      }
-      setFeatDetails(details);
-    }
-    fetchFeats();
-  }, [feats]);
-
   useEffect(() => {
     async function fetchSpells() {
+      // Utility to safely create API slugs, moved here as it's only used here.
+      const slugify = (name) =>
+        name
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9\s-]/g, "")
+          .replace(/\s+/g, "-");
       const details = {};
       for (const name of skills) {
         try {
@@ -276,6 +305,13 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
 
   useEffect(() => {
     async function fetchItems() {
+      // Utility to safely create API slugs, moved here as it's only used here.
+      const slugify = (name) =>
+        name
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9\s-]/g, "")
+          .replace(/\s+/g, "-");
       const details = {};
       for (const name of inventory) {
         try {
@@ -289,6 +325,9 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
     }
     fetchItems();
   }, [inventory]);
+
+  // Create a list of feat names for local autocomplete
+  const featNamesForAutocomplete = Object.keys(featDescriptions).map((name) => ({ name }));
 
   // ─────────────────────────────────────────────
   // RENDER
@@ -305,30 +344,100 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
         {/* MAIN CONTENT */}
         <div className="flex flex-col lg:flex-row gap-4">
           {/* LEFT COLUMN */}
-          <div className="flex flex-col bg-[#fff9e6] border border-gray-400 rounded-md p-3 w-full lg:w-1/3 shadow-inner text-[15px]">
-            <p>
-              <strong>RACE:</strong> {character.race}
-            </p>
-            <p>
-              <strong>CLASS:</strong> {character.class} ({character.subClass})
-            </p>
-            <p>
-              <strong>ALIGNMENT:</strong> {character.alignment}
-            </p>
-            <p>
-              <strong>SPECIAL ABILITY:</strong> {character.specialAbility}
-            </p>
-            <p>
-              <strong>FAMILIAR:</strong> {character.familiar}
-            </p>
-            <div className="mt-3 border-t border-gray-500 pt-2">
-              <p>
-                <strong>BIO / BACKGROUND:</strong>
-              </p>
-              <p className="italic whitespace-pre-line text-sm">
-                {character.bio}
-              </p>
+          <div className="relative flex flex-col bg-[#fff9e6] border border-gray-400 rounded-md p-3 w-full lg:w-1/3 shadow-inner text-[15px]">
+            {isEditing ? (
+              <button onClick={() => setIsEditing(false)} className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-3 py-1 rounded hover:bg-green-700">
+                Save
+              </button>
+            ) : (
+              <button onClick={() => setIsEditing(true)} className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded hover:bg-blue-700">
+                Edit
+              </button>
+            )}
+
+            {/* CHARACTER PICTURE */}
+            <div className="mb-4 flex justify-center">
+              <div className="relative w-32 h-32">
+                <img
+                  src={details.picture || "/pictures/default-avatar.png"}
+                  alt="Character Portrait"
+                  className="w-32 h-32 object-cover rounded-full border-2 border-gray-600 shadow-md"
+                />
+                {isEditing && (
+                  <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 cursor-pointer hover:bg-blue-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                    <input type="file" accept="image/*" className="hidden" onChange={handlePictureUpload} />
+                  </label>
+                )}
+              </div>
             </div>
+
+            {isEditing ? (
+              <>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 pr-16">
+                  <div>
+                    <label className="font-bold">RACE:</label>
+                    <input type="text" name="race" value={details.race} onChange={handleDetailChange} className="border rounded w-full p-1 mt-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="font-bold">ALIGNMENT:</label>
+                    <input type="text" name="alignment" value={details.alignment} onChange={handleDetailChange} className="border rounded w-full p-1 mt-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="font-bold">CLASS:</label>
+                    <input type="text" name="class" value={details.class} onChange={handleDetailChange} className="border rounded w-full p-1 mt-1 text-sm" />
+                  </div>
+                  <div>
+                    <label className="font-bold">SUBCLASS:</label>
+                    <input type="text" name="subClass" value={details.subClass} onChange={handleDetailChange} className="border rounded w-full p-1 mt-1 text-sm" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="font-bold">SPECIAL ABILITY:</label>
+                    <input type="text" name="specialAbility" value={details.specialAbility} onChange={handleDetailChange} className="border rounded w-full p-1 mt-1 text-sm" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="font-bold">FAMILIAR:</label>
+                    <select name="familiar" value={details.familiar} onChange={handleDetailChange} className="border rounded w-full p-1 mt-1 text-sm">
+                      {["None", "Cat", "Raven", "Owl", "Lizard", "Snake", "Parrot", "Frog", "Monkey"].map((fam) => (
+                        <option key={fam}>{fam}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-3 border-t border-gray-500 pt-2">
+                  <label className="font-bold">BIO / BACKGROUND:</label>
+                  <textarea name="bio" value={details.bio} onChange={handleDetailChange} className="border rounded w-full p-2 mt-1 text-sm" rows={4} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="pr-16">
+                  <p>
+                    <strong>RACE:</strong> {details.race}
+                  </p>
+                  <p>
+                    <strong>CLASS:</strong> {details.class} {details.subClass && `(${details.subClass})`}
+                  </p>
+                  <p>
+                    <strong>ALIGNMENT:</strong> {details.alignment}
+                  </p>
+                  <p>
+                    <strong>SPECIAL ABILITY:</strong> {details.specialAbility}
+                  </p>
+                  <p>
+                    <strong>FAMILIAR:</strong> {details.familiar}
+                  </p>
+                </div>
+                <div className="mt-3 border-t border-gray-500 pt-2">
+                  <p>
+                    <strong>BIO / BACKGROUND:</strong>
+                  </p>
+                  <p className="italic whitespace-pre-line text-sm">
+                    {details.bio}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* STATS + EQUIPMENT */}
@@ -341,11 +450,67 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               <div className="text-center font-semibold text-base mb-1">
                 AC: <span className="text-lg font-bold text-black">{ac}</span>
               </div>
+              {/* LEVEL COUNTER */}
+              <div className="col-span-2 flex flex-col items-center justify-center border-2 border-yellow-700 rounded-lg py-1.5 mb-2 shadow-md bg-yellow-400">
+                <span className="uppercase text-sm font-bold tracking-wider text-black">
+                  Level
+                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    onClick={() => adjustStat("level", -1)}
+                    className="bg-[#b33] text-white rounded-md px-2 text-lg font-bold leading-none"
+                  >
+                    −
+                  </button>
+                  <span className="font-mono w-8 text-center text-2xl font-bold text-black">
+                    {stats.level || 1}
+                  </span>
+                  <button
+                    onClick={() => adjustStat("level", 1)}
+                    className="bg-[#2d7a2d] text-white rounded-md px-2 text-lg font-bold leading-none"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* HP COUNTERS */}
+              <div className="grid grid-cols-2 gap-2 my-2">
+                {/* Current HP */}
+                <div className="flex flex-col items-center justify-center border-2 border-green-700 rounded-lg py-1.5 shadow-md bg-green-400">
+                  <span className="uppercase text-xs font-bold tracking-wider text-black">
+                    Current HP
+                  </span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <button onClick={() => adjustStat("currentHP", -1)} className="bg-[#b33] text-white rounded-md px-2 text-base font-bold leading-none"> − </button>
+                    <span className="font-mono w-8 text-center text-xl font-bold text-black">
+                      {stats.currentHP || 0}
+                    </span>
+                    <button onClick={() => adjustStat("currentHP", 1)} className="bg-[#2d7a2d] text-white rounded-md px-2 text-base font-bold leading-none"> + </button>
+                  </div>
+                </div>
+                {/* Max HP */}
+                <div className="flex flex-col items-center justify-center border-2 border-gray-600 rounded-lg py-1.5 shadow-md bg-gray-400">
+                  <span className="uppercase text-xs font-bold tracking-wider text-black">
+                    Max HP
+                  </span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <button onClick={() => adjustStat("maxHP", -1)} className="bg-[#b33] text-white rounded-md px-2 text-base font-bold leading-none"> − </button>
+                    <span className="font-mono w-8 text-center text-xl font-bold text-black">
+                      {stats.maxHP || 10}
+                    </span>
+                    <button onClick={() => adjustStat("maxHP", 1)} className="bg-[#2d7a2d] text-white rounded-md px-2 text-base font-bold leading-none"> + </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1 text-sm">
                 {Object.entries(stats).map(([key, val]) => {
                   if (
                     key.toLowerCase() === "ac" ||
-                    key.toLowerCase() === "level"
+                    key.toLowerCase() === "level" ||
+                    key.toLowerCase() === "maxhp" || // Intentionally lowercase for matching
+                    key.toLowerCase() === "currenthp" // Intentionally lowercase for matching
                   )
                     return null;
                   const mod = getModifier(val);
@@ -395,14 +560,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               </h3>
               {equipmentSlots.map(({ key, label, info }) => (
                 <div
-                  key={key}
-                  className="mb-2 relative group"
-                  onMouseEnter={(e) => {
-                    setHoveredEquip(key);
-                    handleTooltipPosition(e);
-                  }}
-                  onMouseLeave={() => setHoveredEquip(null)}
-                >
+                  key={key} className="mb-2 relative group">
                   <label className="capitalize font-semibold">{label}:</label>
                   <AutoInput
                     endpoint="equipment"
@@ -410,7 +568,14 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                     onChange={(val) => handleEquipChange(key, val)}
                     placeholder={label}
                   />
-                  {hoveredEquip === key && (
+                  <div
+                    className="absolute left-0 top-full mt-2 bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
+                    style={{ whiteSpace: "normal" }}
+                  >
+                    {getTooltipContent({ loading: info.loading, data: info.data, error: info.error })}
+                  </div>
+                  {/* This is a simplified tooltip example. For complex positioning, the original JS approach is better. */}
+                  {/* {hoveredEquip === key && (
                     <div
                       className={`absolute left-0 ${
                         tooltipPosition === "above"
@@ -425,7 +590,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                     >
                       {getTooltipContent({ loading: info.loading, data: info.data, error: info.error })}
                     </div>
-                  )}
+                  )} */}
                 </div>
               ))}
             </div>
@@ -440,10 +605,10 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               FEATS
             </h3>
             <AutoInput
-              endpoint="feats"
               value=""
               onChange={() => {}}
               onAdd={(name) => handleAdd(setFeats, feats, name)}
+              localSuggestions={featNamesForAutocomplete}
               placeholder="Enter a Feat"
             />
             <ul className="space-y-1 mt-1">
@@ -474,10 +639,8 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                       }}
                     >
                       <strong className="block mb-1">{f}</strong>
-                      {featDetails[f]
-                        ? getTooltipContent({ loading: false, data: featDetails[f] })
-                        : featDescriptions[f]
-                        ? featDescriptions[f]
+                      {featDescriptions[f]
+                        ? <p>{featDescriptions[f]}</p>
                         : "No data available for this feat."}
                     </div>
                   )}
@@ -534,8 +697,6 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                       <strong className="block mb-1">{s}</strong>
                       {spellDetails[s]
                         ? getTooltipContent({ loading: false, data: spellDetails[s] })
-                        : hoveredFeatureInfo.data
-                        ? getTooltipContent({ loading: false, data: hoveredFeatureInfo.data })
                         : "No description available for this spell or feature."}
                     </div>
                   )}

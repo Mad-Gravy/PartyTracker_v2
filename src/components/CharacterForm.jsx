@@ -1,16 +1,18 @@
 import { useState } from "react";
 
+const initialFormData = {
+  name: "",
+  race: "",
+  class: "",
+  subClass: "",
+  alignment: "",
+  specialAbility: "",
+  familiar: "None",
+  bio: "",
+};
+
 export default function CharacterForm({ addCharacter }) {
-  const [formData, setFormData] = useState({
-    name: "",
-    race: "",
-    class: "",
-    subClass: "",
-    alignment: "",
-    specialAbility: "",
-    familiar: "None",
-    bio: "",
-  });
+  const [formData, setFormData] = useState(initialFormData);
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,8 +21,11 @@ export default function CharacterForm({ addCharacter }) {
     e.preventDefault();
     const newChar = {
       ...formData,
+      picture: "", // Add a default picture field
       stats: {
         level: 1,
+        maxHP: 10,
+        currentHP: 10,
         strength: 3,
         dexterity: 3,
         constitution: 3,
@@ -34,16 +39,7 @@ export default function CharacterForm({ addCharacter }) {
       equipment: {},
     };
     addCharacter(newChar);
-    setFormData({
-      name: "",
-      race: "",
-      class: "",
-      subClass: "",
-      alignment: "",
-      specialAbility: "",
-      familiar: "None",
-      bio: "",
-    });
+    setFormData(initialFormData);
   };
 
   return (
@@ -117,18 +113,7 @@ export default function CharacterForm({ addCharacter }) {
           </button>
           <button
             type="reset"
-            onClick={() =>
-              setFormData({
-                name: "",
-                race: "",
-                class: "",
-                subClass: "",
-                alignment: "",
-                specialAbility: "",
-                familiar: "None",
-                bio: "",
-              })
-            }
+            onClick={() => setFormData(initialFormData)}
             className="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800"
           >
             Reset

@@ -147,14 +147,11 @@ export function useDnDAPI(endpoint, name) {
             "amulet",
             "cloak",
             "boots",
-            "potion",
             "stone",
-            "orb",
             "orb",
             "gem",
             "of",
             "rod",
-            "staff"
           ];
           const low = name?.toLowerCase() || "";
           const looksMagic = magicKeywords.some((kw) => low.includes(kw));
@@ -188,7 +185,6 @@ export function useDnDAPI(endpoint, name) {
 
 /** Specialized hooks */
 export const useEquipmentInfo = (name) => useDnDAPI("equipment", name);
-export const useMagicItemInfo = (name) => useDnDAPI("magic-items", name);
 export const useFeatInfo = (name) => useDnDAPI("feats", name);
 export const useSpellInfo = (name) => useDnDAPI("spells", name);
 export const useFeatureInfo = (name) => useDnDAPI("features", name);
