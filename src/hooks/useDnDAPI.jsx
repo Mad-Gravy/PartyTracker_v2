@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { spellDescriptions } from "../data/spellDescriptions";
 
 const API_BASE = "https://www.dnd5eapi.co/api";
 
@@ -38,6 +39,27 @@ export function useDnDAPI(endpoint, name) {
 
   useEffect(() => {
     if (!name) return;
+
+    // Check local spell descriptions first to avoid API call
+    if (endpoint === "spells") {
+      let localDesc = spellDescriptions[name];
+
+      // If no exact match, try case-insensitive lookup
+      if (!localDesc) {
+        const lowerName = name.toLowerCase();
+        const foundKey = Object.keys(spellDescriptions).find(
+          (key) => key.toLowerCase() === lowerName
+        );
+        if (foundKey) localDesc = spellDescriptions[foundKey];
+      }
+
+      if (localDesc) {
+        setData({ name, desc: [localDesc] });
+        setLoading(false);
+        setError(null);
+        return;
+      }
+    }
 
     const fetchData = async () => {
       setLoading(true);
