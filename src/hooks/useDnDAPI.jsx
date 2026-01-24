@@ -73,8 +73,8 @@ export function useDnDAPI(endpoint, name) {
 
         // Debug: log what we're attempting to fetch
         // (helps diagnose 404s / bad slugs / CORS failures)
-        // eslint-disable-next-line no-console
-        console.debug(`[useDnDAPI] fetching ${endpoint}/${slug}`);
+        // eslint-disable-next-line no-console;
+        // console.debug(`[useDnDAPI] fetching ${endpoint}/${slug}`);
 
         // First attempt
         let response = await fetch(`${API_BASE}/${endpoint}/${slug}`);
@@ -129,7 +129,6 @@ export function useDnDAPI(endpoint, name) {
             }
 
             if (match) {
-              // eslint-disable-next-line no-console
               console.debug(
                 `[useDnDAPI] index fallback matched ${match.index} (${match.name}), fetching that entry`
               );
@@ -175,16 +174,21 @@ export function useDnDAPI(endpoint, name) {
             "of",
             "rod",
           ];
+
           const low = name?.toLowerCase() || "";
           const looksMagic = magicKeywords.some((kw) => low.includes(kw));
+
           if (looksMagic) {
             // eslint-disable-next-line no-console
             console.debug(`[useDnDAPI] attempting magic-items fallback for ${name}`);
             const altRes = await fetch(`${API_BASE}/magic-items/${slug}`);
+
             if (altRes.ok) {
               const altJson = await altRes.json();
+
               if (altJson && altJson.desc) json = altJson;
             }
+            
           } else {
             // eslint-disable-next-line no-console
             console.debug(`[useDnDAPI] skipping magic-items fallback for ${name}`);
