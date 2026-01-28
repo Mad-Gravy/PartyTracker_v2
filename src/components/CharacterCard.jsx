@@ -5,6 +5,8 @@ import {
   useDnDAutocomplete,
 } from "../hooks/useDnDAPI";
 import { featDescriptions } from "../data/featDescriptions";
+import { classFeatureDescriptions } from "../data/classFeatureDescriptions";
+import { spellDescriptions } from "../data/spellDescriptions";
 
 // ─────────────────────────────────────────────
 // Autocomplete Input Component
@@ -134,9 +136,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
     bio: character.bio || "",
     picture: character.picture || "",
   });
-  const [spellDetails, setSpellDetails] = useState({});
   const [itemDetails, setItemDetails] = useState({});
-
   const prevCharName = useRef(character.name);
   const [hoveredItem, setHoveredItem] = useState(null);
 
@@ -206,7 +206,6 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   ];
 
   // Calculate AC
-  const getModifier = (val) => Math.floor((val - 10) / 2);
   useEffect(() => {
     let baseAC = 10 + getModifier(stats.dexterity || 10);
     const armorData = armorInfo.data;
@@ -281,53 +280,35 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   };
 
   useEffect(() => {
-    async function fetchSpells() {
-      // Utility to safely create API slugs, moved here as it's only used here.
-      const slugify = (name) =>
-        name
-          .toLowerCase()
-          .trim()
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-");
-      const details = {};
-      for (const name of skills) {
-        try {
-          const res = await fetch(
-            `https://www.dnd5eapi.co/api/spells/${slugify(name)}`
-          );
-          if (res.ok) details[name] = await res.json();
-        } catch {}
-      }
-      setSpellDetails(details);
-    }
-    fetchSpells();
-  }, [skills]);
-
-  useEffect(() => {
     async function fetchItems() {
-      // Utility to safely create API slugs, moved here as it's only used here.
-      const slugify = (name) =>
-        name
-          .toLowerCase()
-          .trim()
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-");
       const details = {};
       for (const name of inventory) {
-        try {
-          const res = await fetch(
-            `https://www.dnd5eapi.co/api/magic-items/${slugify(name)}`
-          );
-          if (res.ok) details[name] = await res.json();
-        } catch {}
+        const itemData = await fetch(
+          `https://www.dnd5eapi.co/api/magic-items/${name
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")}`
+        );
+        if (itemData.ok) {
+          details[name] = await itemData.json();
+        }
       }
       setItemDetails(details);
     }
     fetchItems();
   }, [inventory]);
+  
+  const getModifier = (val) => Math.floor((val - 10) / 2);
+
+  const allSkills = { ...spellDescriptions, ...classFeatureDescriptions };
+  const skillAndFeatureNamesForAutocomplete = Object.keys(allSkills).map(
+    (name) => ({ name })
+  );
 
   // Create a list of feat names for local autocomplete
-  const featNamesForAutocomplete = Object.keys(featDescriptions).map((name) => ({ name }));
+  const featNamesForAutocomplete = Object.keys(featDescriptions).map(
+    (name) => ({ name })
+  );
 
   // ─────────────────────────────────────────────
   // RENDER
@@ -574,23 +555,6 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                   >
                     {getTooltipContent({ loading: info.loading, data: info.data, error: info.error })}
                   </div>
-                  {/* This is a simplified tooltip example. For complex positioning, the original JS approach is better. */}
-                  {/* {hoveredEquip === key && (
-                    <div
-                      className={`absolute left-0 ${
-                        tooltipPosition === "above"
-                          ? "bottom-full mb-2"
-                          : "top-full mt-2"
-                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50`}
-                      style={{
-                        position: "absolute",
-                        whiteSpace: "normal",
-                        pointerEvents: "auto",
-                      }}
-                    >
-                      {getTooltipContent({ loading: info.loading, data: info.data, error: info.error })}
-                    </div>
-                  )} */}
                 </div>
               ))}
             </div>
@@ -661,7 +625,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               SKILLS & SPELLS
             </h3>
             <AutoInput
-              endpoint="spells"
+              localSuggestions={skillAndFeatureNamesForAutocomplete}
               value=""
               onChange={() => {}}
               onAdd={(name) => handleAdd(setSkills, skills, name)}
@@ -695,9 +659,11 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                       }}
                     >
                       <strong className="block mb-1">{s}</strong>
-                      {spellDetails[s]
-                        ? getTooltipContent({ loading: false, data: spellDetails[s] })
-                        : "No description available for this spell or feature."}
+                      {allSkills[s] ? (
+                        <p>{allSkills[s]}</p>
+                      ) : (
+                        "No description available for this spell or feature."
+                      )}
                     </div>
                   )}
                   <button
