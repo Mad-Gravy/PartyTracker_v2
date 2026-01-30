@@ -234,14 +234,17 @@ export function useEquipmentInfo(name) {
   // First, try to find the item in the local weapon/shield data
   const localItem = findWeaponShield(name);
 
-  // If found locally, return it immediately (no loading or API call needed)
-  // We mimic the { data, loading, error } structure for consistency.
+  // Always call the API hook to ensure hooks are not called conditionally.
+  const api = useDnDAPI("equipment", name);
+
+  // If a local item is found, we can return it immediately.
+  // The API call will still run in the background, but we won't use its result.
   if (localItem) {
     return { data: localItem, loading: false, error: null };
   }
 
-  // If not found locally, fall back to the generic API fetcher.
-  return useDnDAPI("equipment", name);
+  // If no local item, return the result of the API call.
+  return api;
 }
 export const useFeatInfo = (name) => useDnDAPI("feats", name);
 export const useSpellInfo = (name) => useDnDAPI("spells", name);
