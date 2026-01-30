@@ -139,20 +139,11 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   const [itemDetails, setItemDetails] = useState({});
   const prevCharName = useRef(character.name);
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [tooltipCoordinates, setTooltipCoordinates] = useState({ x: 0, y: 0 });
 
   // 🧭 Tooltip positioning
-  const [tooltipPosition, setTooltipPosition] = useState("below");
-  const handleTooltipPosition = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const tooltipHeight = 220;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-
-    if (spaceBelow < tooltipHeight && spaceAbove > spaceBelow) {
-      setTooltipPosition("above");
-    } else {
-      setTooltipPosition("below");
-    }
+  const handleMouseMove = (e) => {
+    setTooltipCoordinates({ x: e.clientX, y: e.clientY });
   };
 
   // Reset character state when switching tabs
@@ -192,7 +183,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
       });
     }, 300);
     return () => clearTimeout(timeout);
-  }, [stats, ac, equipment, feats, skills, inventory, details]);
+  }, [stats, ac, equipment, feats, skills, inventory, details, character.name, onUpdate]);
 
   // ✅ Hooks for each equipment slot (moved outside of .map())
   const armorInfo = useEquipmentInfo(equipment.armor);
@@ -541,7 +532,15 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               </h3>
               {equipmentSlots.map(({ key, label, info }) => (
                 <div
-                  key={key} className="mb-2 relative group">
+                  key={key}
+                  className="mb-2 relative group"
+                  onMouseEnter={(e) => {
+                    setHoveredItem(key);
+                    handleMouseMove(e);
+                  }}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  onMouseMove={handleMouseMove}
+                >
                   <label className="capitalize font-semibold">{label}:</label>
                   <AutoInput
                     endpoint="equipment"
@@ -549,12 +548,24 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                     onChange={(val) => handleEquipChange(key, val)}
                     placeholder={label}
                   />
-                  <div
-                    className="absolute left-0 top-full mt-2 bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
-                    style={{ whiteSpace: "normal" }}
-                  >
-                    {getTooltipContent({ loading: info.loading, data: info.data, error: info.error })}
-                  </div>
+                  {hoveredItem === key && (
+                    <div
+                      className="bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg transition-opacity duration-150 ease-in-out"
+                      style={{
+                        position: "fixed",
+                        top: tooltipCoordinates.y - 120,
+                        left: tooltipCoordinates.x - 60,
+                        whiteSpace: "normal",
+                        pointerEvents: "auto",
+                      }}
+                    >
+                      {getTooltipContent({
+                        loading: info.loading,
+                        data: info.data,
+                        error: info.error,
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -577,45 +588,43 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
             />
             <ul className="space-y-1 mt-1">
               {feats.map((f) => (
-                <li
-                  key={f}
-                  className="flex justify-between items-center relative group"
-                  onMouseEnter={(e) => {
-                    setHoveredItem(f);
-                    handleTooltipPosition(e);
-                  }}
-                  onMouseLeave={() => setHoveredItem(null)}
-                >
-                  <span>{f}</span>
-                  {hoveredItem === f && (
+                                <li
+                                  key={f}
+                                  className="flex justify-between items-center relative group"
+                                  onMouseEnter={(e) => {
+                                    setHoveredItem(f);
+                                    handleMouseMove(e);
+                                  }}
+                                  onMouseLeave={() => setHoveredItem(null)}
+                                  onMouseMove={handleMouseMove}
+                                >
+                                  <span>{f}</span>
+                                  {hoveredItem === f && (
                     <div
-                      className={`absolute left-0 ${
-                        tooltipPosition === "above"
-                          ? "bottom-full mb-2"
-                          : "top-full mt-2"
-                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out ${
-                        hoveredItem === f ? "opacity-100" : "opacity-0"
-                      }`}
+                      className="bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg transition-opacity duration-150 ease-in-out"
                       style={{
-                        position: "absolute",
+                        position: "fixed",
+                        top: tooltipCoordinates.y - 120,
+                        left: tooltipCoordinates.x - 60,
                         whiteSpace: "normal",
                         pointerEvents: "auto",
                       }}
                     >
                       <strong className="block mb-1">{f}</strong>
-                      {featDescriptions[f]
-                        ? <p>{featDescriptions[f]}</p>
-                        : "No data available for this feat."}
+                      {featDescriptions[f] ? (
+                        <p>{featDescriptions[f]}</p>
+                      ) : (
+                        "No data available for this feat."
+                      )}
                     </div>
                   )}
-                  <button
-                    onClick={() => handleRemove(setFeats, feats, f)}
-                    className="text-red-700 font-bold"
-                  >
-                    X
-                  </button>
-                </li>
-              ))}
+                                  <button
+                                    onClick={() => handleRemove(setFeats, feats, f)}
+                                    className="text-red-700 font-bold"
+                                  >
+                                    X
+                                  </button>
+                                </li>              ))}
             </ul>
           </div>
 
@@ -638,22 +647,19 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                   className="flex justify-between items-center relative group"
                   onMouseEnter={(e) => {
                     setHoveredItem(s);
-                    handleTooltipPosition(e);
+                    handleMouseMove(e);
                   }}
                   onMouseLeave={() => setHoveredItem(null)}
+                  onMouseMove={handleMouseMove}
                 >
                   <span>{s}</span>
                   {hoveredItem === s && (
                     <div
-                      className={`absolute left-0 ${
-                        tooltipPosition === "above"
-                          ? "bottom-full mb-2"
-                          : "top-full mt-2"
-                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out ${
-                        hoveredItem === s ? "opacity-100" : "opacity-0"
-                      }`}
+                      className="bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg transition-opacity duration-150 ease-in-out"
                       style={{
-                        position: "absolute",
+                        position: "fixed",
+                        top: tooltipCoordinates.y - 120,
+                        left: tooltipCoordinates.x - 60,
                         whiteSpace: "normal",
                         pointerEvents: "auto",
                       }}
@@ -696,29 +702,29 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                   className="flex justify-between items-center relative group"
                   onMouseEnter={(e) => {
                     setHoveredItem(i);
-                    handleTooltipPosition(e);
+                    handleMouseMove(e);
                   }}
                   onMouseLeave={() => setHoveredItem(null)}
+                  onMouseMove={handleMouseMove}
                 >
                   <span>{i}</span>
                   {hoveredItem === i && (
                     <div
-                      className={`absolute left-0 ${
-                        tooltipPosition === "above"
-                          ? "bottom-full mb-2"
-                          : "top-full mt-2"
-                      } bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg z-50 transition-opacity duration-150 ease-in-out ${
-                        hoveredItem === i ? "opacity-100" : "opacity-0"
-                      }`}
+                      className="bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg transition-opacity duration-150 ease-in-out"
                       style={{
-                        position: "absolute",
+                        position: "fixed",
+                        top: tooltipCoordinates.y - 120,
+                        left: tooltipCoordinates.x - 60,
                         whiteSpace: "normal",
                         pointerEvents: "auto",
                       }}
                     >
                       <strong className="block mb-1">{i}</strong>
                       {itemDetails[i]
-                        ? getTooltipContent({ loading: false, data: itemDetails[i] })
+                        ? getTooltipContent({
+                            loading: false,
+                            data: itemDetails[i],
+                          })
                         : "No data available for this item."}
                     </div>
                   )}

@@ -73,87 +73,78 @@ export function useDnDAPI(endpoint, name) {
 
         // Debug: log what we're attempting to fetch
         // (helps diagnose 404s / bad slugs / CORS failures)
-        // eslint-disable-next-line no-console;
-        // console.debug(`[useDnDAPI] fetching ${endpoint}/${slug}`);
 
         // First attempt
         let response = await fetch(`${API_BASE}/${endpoint}/${slug}`);
         let json;
         if (!response.ok) {
           // Attempt index-based fallback using a cached index list and smarter matching
-          // eslint-disable-next-line no-console
           console.debug(
             `[useDnDAPI] primary fetch failed (${response.status}), attempting index fallback for ${endpoint}/${slug}`
           );
 
           // fetch and cache index list if not already cached
-          try {
-            let results = endpointIndexCache.get(endpoint);
-            if (!results) {
-              const listRes = await fetch(`${API_BASE}/${endpoint}`);
-              if (!listRes.ok) {
-                const text = await listRes.text().catch(() => "");
-                throw new Error(
-                  `Index fetch failed: HTTP ${listRes.status} ${listRes.statusText} - ${text}`
-                );
-              }
-              const listJson = await listRes.json();
-              results = listJson.results || [];
-              endpointIndexCache.set(endpoint, results);
-              // eslint-disable-next-line no-console
-              console.debug(
-                `[useDnDAPI] cached ${results.length} entries for ${endpoint}`
-              );
-            }
-
-            // Try exact normalized name match first
-            const normName = normalize(name);
-            let match =
-              results.find(
-                (r) => normalize(r.name) === normName || String(r.index).toLowerCase() === slug
-              ) || null;
-
-            // If no exact normalized match, score by token overlap
-            if (!match) {
-              let best = null;
-              let bestScore = 0;
-              for (const r of results) {
-                const score = tokenScore(r.name, name);
-                if (score > bestScore) {
-                  bestScore = score;
-                  best = r;
-                }
-              }
-              // require at least one overlapping token to accept
-              if (bestScore > 0) match = best;
-            }
-
-            if (match) {
-              console.debug(
-                `[useDnDAPI] index fallback matched ${match.index} (${match.name}), fetching that entry`
-              );
-              const altRes = await fetch(`${API_BASE}/${endpoint}/${match.index}`);
-              if (altRes.ok) {
-                json = await altRes.json();
-              } else {
-                const text = await altRes.text().catch(() => "");
-                throw new Error(
-                  `Fallback HTTP ${altRes.status} ${altRes.statusText} - ${text}`
-                );
-              }
-            } else {
-              const text = await response.text().catch(() => "");
+          let results = endpointIndexCache.get(endpoint);
+          if (!results) {
+            const listRes = await fetch(`${API_BASE}/${endpoint}`);
+            if (!listRes.ok) {
+              const text = await listRes.text().catch(() => "");
               throw new Error(
-                `Primary fetch failed: HTTP ${response.status} ${response.statusText} - ${text}`
+                `Index fetch failed: HTTP ${listRes.status} ${listRes.statusText} - ${text}`
               );
             }
-          } catch (fallbackErr) {
-            throw fallbackErr;
+            const listJson = await listRes.json();
+            results = listJson.results || [];
+            endpointIndexCache.set(endpoint, results);
+            console.debug(
+              `[useDnDAPI] cached ${results.length} entries for ${endpoint}`
+            );
+          }
+
+          // Try exact normalized name match first
+          const normName = normalize(name);
+          let match =
+            results.find(
+              (r) => normalize(r.name) === normName || String(r.index).toLowerCase() === slug
+            ) || null;
+
+          // If no exact normalized match, score by token overlap
+          if (!match) {
+            let best = null;
+            let bestScore = 0;
+            for (const r of results) {
+              const score = tokenScore(r.name, name);
+              if (score > bestScore) {
+                bestScore = score;
+                best = r;
+              }
+            }
+            // require at least one overlapping token to accept
+            if (bestScore > 0) match = best;
+          }
+
+          if (match) {
+            console.debug(
+              `[useDnDAPI] index fallback matched ${match.index} (${match.name}), fetching that entry`
+            );
+            const altRes = await fetch(`${API_BASE}/${endpoint}/${match.index}`);
+            if (altRes.ok) {
+              json = await altRes.json();
+            } else {
+              const text = await altRes.text().catch(() => "");
+              throw new Error(
+                `Fallback HTTP ${altRes.status} ${altRes.statusText} - ${text}`
+              );
+            }
+          } else {
+            const text = await response.text().catch(() => "");
+            throw new Error(
+              `Primary fetch failed: HTTP ${response.status} ${response.statusText} - ${text}`
+            );
           }
         } else {
           json = await response.json();
           // Debug: log successful response shape
-          // eslint-disable-next-line no-console
           console.debug(`[useDnDAPI] response for ${endpoint}/${slug}:`, json);
         }
 
@@ -179,7 +170,6 @@ export function useDnDAPI(endpoint, name) {
           const looksMagic = magicKeywords.some((kw) => low.includes(kw));
 
           if (looksMagic) {
-            // eslint-disable-next-line no-console
             console.debug(`[useDnDAPI] attempting magic-items fallback for ${name}`);
             const altRes = await fetch(`${API_BASE}/magic-items/${slug}`);
 
@@ -190,7 +180,6 @@ export function useDnDAPI(endpoint, name) {
             }
             
           } else {
-            // eslint-disable-next-line no-console
             console.debug(`[useDnDAPI] skipping magic-items fallback for ${name}`);
           }
         }
