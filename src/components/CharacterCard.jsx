@@ -553,10 +553,10 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                       className="bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg transition-opacity duration-150 ease-in-out"
                       style={{
                         position: "fixed",
-                        top: tooltipCoordinates.y - 120,
+                        top: tooltipCoordinates.y - 150,
                         left: tooltipCoordinates.x - 60,
                         whiteSpace: "normal",
-                        pointerEvents: "auto",
+                        pointerEvents: "none",
                       }}
                     >
                       {getTooltipContent({
@@ -658,10 +658,10 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                       className="bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg transition-opacity duration-150 ease-in-out"
                       style={{
                         position: "fixed",
-                        top: tooltipCoordinates.y - 120,
+                        top: tooltipCoordinates.y - 150,
                         left: tooltipCoordinates.x - 60,
                         whiteSpace: "normal",
-                        pointerEvents: "auto",
+                        pointerEvents: "none",
                       }}
                     >
                       <strong className="block mb-1">{s}</strong>
@@ -713,10 +713,10 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                       className="bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg transition-opacity duration-150 ease-in-out"
                       style={{
                         position: "fixed",
-                        top: tooltipCoordinates.y - 120,
+                        top: tooltipCoordinates.y - 150,
                         left: tooltipCoordinates.x - 60,
                         whiteSpace: "normal",
-                        pointerEvents: "auto",
+                        pointerEvents: "none",
                       }}
                     >
                       <strong className="block mb-1">{i}</strong>
