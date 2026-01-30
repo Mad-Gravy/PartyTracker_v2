@@ -4,6 +4,7 @@ import {
   getTooltipContent,
   useDnDAutocomplete,
 } from "../hooks/useDnDAPI";
+import { weaponShieldData } from "../data/weaponShieldData";
 import { featDescriptions } from "../data/featDescriptions";
 import { classFeatureDescriptions } from "../data/classFeatureDescriptions";
 import { spellDescriptions } from "../data/spellDescriptions";
@@ -137,7 +138,6 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
     picture: character.picture || "",
   });
   const [itemDetails, setItemDetails] = useState({});
-  const prevCharName = useRef(character.name);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [tooltipCoordinates, setTooltipCoordinates] = useState({ x: 0, y: 0 });
 
@@ -145,30 +145,6 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   const handleMouseMove = (e) => {
     setTooltipCoordinates({ x: e.clientX, y: e.clientY });
   };
-
-  // Reset character state when switching tabs
-  useEffect(() => {
-    if (prevCharName.current !== character.name) {
-      setStats({ ...character.stats });
-      setEquipment({ ...character.equipment });
-      setAc(character.stats.ac || 10);
-      setFeats([...(character.feats || [])]);
-      setSkills([...(character.skillsSpells || [])]);
-      setInventory([...(character.inventory || [])]);
-      setIsEditing(false); // Exit edit mode on tab switch
-      setDetails({
-        race: character.race || "",
-        class: character.class || "",
-        subClass: character.subClass || "",
-        alignment: character.alignment || "",
-        specialAbility: character.specialAbility || "",
-        familiar: character.familiar || "None",
-        bio: character.bio || "",
-        picture: character.picture || "",
-      });
-      prevCharName.current = character.name;
-    }
-  }, [character]);
 
   // Sync with parent
   useEffect(() => {
@@ -190,10 +166,14 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   const mainHandInfo = useEquipmentInfo(equipment.mainHand);
   const offHandInfo = useEquipmentInfo(equipment.offHand);
 
+  const weaponShieldNamesForAutocomplete = Object.keys(weaponShieldData).map(
+    (name) => ({ name })
+  );
+
   const equipmentSlots = [
     { key: "armor", label: "Armor", info: armorInfo },
-    { key: "mainHand", label: "Main-Hand", info: mainHandInfo },
-    { key: "offHand", label: "Off-Hand", info: offHandInfo },
+    { key: "mainHand", label: "Main-Hand", info: mainHandInfo, localSuggestions: weaponShieldNamesForAutocomplete },
+    { key: "offHand", label: "Off-Hand", info: offHandInfo, localSuggestions: weaponShieldNamesForAutocomplete },
   ];
 
   // Calculate AC
@@ -530,7 +510,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
               <h3 className="font-[Cinzel] font-bold text-center border-b border-gray-700 mb-2">
                 EQUIPMENT
               </h3>
-              {equipmentSlots.map(({ key, label, info }) => (
+              {equipmentSlots.map(({ key, label, info, localSuggestions }) => (
                 <div
                   key={key}
                   className="mb-2 relative group"
@@ -547,6 +527,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                     value={equipment[key] || ""}
                     onChange={(val) => handleEquipChange(key, val)}
                     placeholder={label}
+                    localSuggestions={localSuggestions}
                   />
                   {hoveredItem === key && (
                     <div
@@ -604,10 +585,10 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                       className="bg-[#fff9e6] border border-gray-700 rounded p-2 text-xs w-60 shadow-lg transition-opacity duration-150 ease-in-out"
                       style={{
                         position: "fixed",
-                        top: tooltipCoordinates.y - 120,
+                        top: tooltipCoordinates.y - 150,
                         left: tooltipCoordinates.x - 60,
                         whiteSpace: "normal",
-                        pointerEvents: "auto",
+                        pointerEvents: "none",
                       }}
                     >
                       <strong className="block mb-1">{f}</strong>

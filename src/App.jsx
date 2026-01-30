@@ -116,6 +116,7 @@ export default function App() {
             <CharacterForm addCharacter={addCharacter} />
           ) : activeCharacter ? (
             <CharacterCard
+              key={activeCharacter.name}
               character={activeCharacter}
               onDelete={() => deleteCharacter(activeCharacter.name)}
               onUpdate={updateCharacter} // 👈 Pass update callback here

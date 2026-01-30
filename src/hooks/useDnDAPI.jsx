@@ -1,5 +1,36 @@
 import { useState, useEffect } from "react";
 import { spellDescriptions } from "../data/spellDescriptions";
+import { weaponShieldData } from "../data/weaponShieldData";
+
+// Helper to find a weapon/shield by name, including aliases
+function findWeaponShield(name) {
+  if (!name) return null;
+  const normalizedName = name.toLowerCase().replace(/\s+/g, "");
+  
+  // Exact key match
+  if (weaponShieldData[name]) return { name, ...weaponShieldData[name] };
+
+  // Case-insensitive key match
+  for (const key in weaponShieldData) {
+    if (key.toLowerCase() === normalizedName) {
+      return { name: key, ...weaponShieldData[key] };
+    }
+  }
+
+  // Check aliases
+  for (const key in weaponShieldData) {
+    const item = weaponShieldData[key];
+    if (item.aliases) {
+      for (const alias of item.aliases) {
+        if (alias.toLowerCase() === normalizedName) {
+          return { name: key, ...item };
+        }
+      }
+    }
+  }
+  
+  return null;
+}
 
 const API_BASE = "https://www.dnd5eapi.co/api";
 
@@ -199,7 +230,19 @@ export function useDnDAPI(endpoint, name) {
 }
 
 /** Specialized hooks */
-export const useEquipmentInfo = (name) => useDnDAPI("equipment", name);
+export function useEquipmentInfo(name) {
+  // First, try to find the item in the local weapon/shield data
+  const localItem = findWeaponShield(name);
+
+  // If found locally, return it immediately (no loading or API call needed)
+  // We mimic the { data, loading, error } structure for consistency.
+  if (localItem) {
+    return { data: localItem, loading: false, error: null };
+  }
+
+  // If not found locally, fall back to the generic API fetcher.
+  return useDnDAPI("equipment", name);
+}
 export const useFeatInfo = (name) => useDnDAPI("feats", name);
 export const useSpellInfo = (name) => useDnDAPI("spells", name);
 export const useFeatureInfo = (name) => useDnDAPI("features", name);
@@ -224,6 +267,33 @@ export function getTooltipContent({ loading, data, error }) {
   if (error) return <p><em>Error: {error}</em></p>;
   if (!data) return <p><em>No data found.</em></p>;
 
+  // Render local weapon/shield data
+  if (data.kind === "Weapon" || data.kind === "Shield") {
+    const fields = {
+      Category: data.category,
+      Damage: data.damage,
+      "AC Bonus": data.acBonus,
+      Properties: data.properties?.join(', '),
+      Cost: data.cost,
+      Weight: data.weight ? `${data.weight} lb.` : null,
+    };
+
+    const descHtml = data.desc && Array.isArray(data.desc) && data.desc.length > 0
+      ? `<div class="mt-2">${data.desc.join("<br/><br/>")}</div>`
+      : "";
+
+    return (
+      <div
+        dangerouslySetInnerHTML={{
+          __html:
+            Object.entries(fields)
+              .filter(([, value]) => value) // Filter out empty/null values
+              .map(([key, value]) => `<p><strong>${key}:</strong> ${value}</p>`)
+              .join("") + descHtml,
+        }}
+      />
+    );
+  }
   // Spells, feats, and features — render description text normally
   // NOTE: some equipment entries return an empty `desc: []`. Only treat
   // `desc` as the primary content when it's a non-empty array and NOT equipment.
