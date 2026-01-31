@@ -180,8 +180,8 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
   useEffect(() => {
     let baseAC = 10 + getModifier(stats.dexterity || 10);
     const armorData = armorInfo.data;
-    const offhandData = offHandInfo.data;
 
+    // Armor
     if (armorData?.armor_class) {
       const acData = armorData.armor_class;
       baseAC = acData.base || baseAC;
@@ -192,17 +192,24 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
       }
     }
 
-    if (offhandData?.armor_class?.base) {
-      baseAC += offhandData.armor_class.base;
-    } else if (
-      equipment.offHand?.toLowerCase().includes("shield") &&
-      !offhandData
-    ) {
-      baseAC += 2;
-    }
+    // Main-Hand and Off-Hand AC bonus
+    [equipment.mainHand, equipment.offHand].forEach(hand => {
+      if (hand) {
+        const item = Object.values(weaponShieldData).find(
+          (i) => i.name?.toLowerCase() === hand.toLowerCase() || 
+                 (i.aliases && i.aliases.some(a => a.toLowerCase() === hand.toLowerCase()))
+        );
+        if (item && item.acBonus) {
+          baseAC += item.acBonus;
+        } else if (hand.toLowerCase().includes("shield")) { // Fallback for shields
+          const shield = weaponShieldData["Shield"];
+          if(shield && shield.acBonus) baseAC += shield.acBonus;
+        }
+      }
+    });
 
     setAc(baseAC);
-  }, [armorInfo.data, offHandInfo.data, stats.dexterity, equipment]);
+  }, [armorInfo.data, equipment.mainHand, equipment.offHand, stats.dexterity]);
 
   // Stat modifiers
   const adjustStat = (stat, delta) =>

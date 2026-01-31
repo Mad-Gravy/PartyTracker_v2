@@ -10,6 +10,7 @@ export const weaponShieldData = {
   // SHIELDS
   // ─────────────────────────────
   Shield: {
+    name: "Shield",
     kind: "Shield",
     category: "Armor",
     acBonus: 2,
@@ -26,6 +27,7 @@ export const weaponShieldData = {
   // SIMPLE MELEE
   // ─────────────────────────────
   Club: {
+    name: "Club",
     kind: "Weapon",
     category: "Simple Melee",
     damage: "1d4 bludgeoning",
@@ -35,6 +37,7 @@ export const weaponShieldData = {
     desc: ["A short stick or baton, easy to swing with one hand."],
   },
   Dagger: {
+    name: "Dagger",
     kind: "Weapon",
     category: "Simple Melee",
     damage: "1d4 piercing",
@@ -47,6 +50,7 @@ export const weaponShieldData = {
     ],
   },
   Greatclub: {
+    name: "Greatclub",
     kind: "Weapon",
     category: "Simple Melee",
     damage: "1d8 bludgeoning",
@@ -56,6 +60,7 @@ export const weaponShieldData = {
     desc: ["A large wooden club requiring two hands to wield effectively."],
   },
   Handaxe: {
+    name: "Handaxe",
     kind: "Weapon",
     category: "Simple Melee",
     damage: "1d6 slashing",
@@ -65,6 +70,7 @@ export const weaponShieldData = {
     desc: ["A small axe balanced for both chopping and throwing."],
   },
   Javelin: {
+    name: "Javelin",
     kind: "Weapon",
     category: "Simple Melee",
     damage: "1d6 piercing",
@@ -74,6 +80,7 @@ export const weaponShieldData = {
     desc: ["A light spear designed primarily for throwing."],
   },
   LightHammer: {
+    name: "Light Hammer",
     aliases: ["Light Hammer"],
     kind: "Weapon",
     category: "Simple Melee",
@@ -84,6 +91,7 @@ export const weaponShieldData = {
     desc: ["A small hammer that can be used in melee or thrown."],
   },
   Mace: {
+    name: "Mace",
     kind: "Weapon",
     category: "Simple Melee",
     damage: "1d6 bludgeoning",
@@ -93,6 +101,7 @@ export const weaponShieldData = {
     desc: ["A heavy-headed club, effective against armored foes."],
   },
   Quarterstaff: {
+    name: "Quarterstaff",
     kind: "Weapon",
     category: "Simple Melee",
     damage: "1d6 bludgeoning",
@@ -103,6 +112,7 @@ export const weaponShieldData = {
     desc: ["A sturdy staff. Can be wielded one-handed or two-handed for more damage."],
   },
   Sickle: {
+    name: "Sickle",
     kind: "Weapon",
     category: "Simple Melee",
     damage: "1d4 slashing",
@@ -112,6 +122,7 @@ export const weaponShieldData = {
     desc: ["A curved harvesting blade used as a light weapon."],
   },
   Spear: {
+    name: "Spear",
     kind: "Weapon",
     category: "Simple Melee",
     damage: "1d6 piercing",
@@ -126,6 +137,7 @@ export const weaponShieldData = {
   // SIMPLE RANGED
   // ─────────────────────────────
   LightCrossbow: {
+    name: "Light Crossbow",
     aliases: ["Light Crossbow"],
     kind: "Weapon",
     category: "Simple Ranged",
@@ -136,6 +148,7 @@ export const weaponShieldData = {
     desc: ["A compact crossbow. Slower rate of fire due to loading."],
   },
   Dart: {
+    name: "Dart",
     kind: "Weapon",
     category: "Simple Ranged",
     damage: "1d4 piercing",
@@ -145,6 +158,7 @@ export const weaponShieldData = {
     desc: ["A small thrown projectile. Can use Strength or Dexterity thanks to Finesse."],
   },
   Shortbow: {
+    name: "Shortbow",
     kind: "Weapon",
     category: "Simple Ranged",
     damage: "1d6 piercing",
@@ -154,6 +168,7 @@ export const weaponShieldData = {
     desc: ["A smaller bow with a respectable range and damage."],
   },
   Sling: {
+    name: "Sling",
     kind: "Weapon",
     category: "Simple Ranged",
     damage: "1d4 bludgeoning",
@@ -167,6 +182,7 @@ export const weaponShieldData = {
   // MARTIAL MELEE
   // ─────────────────────────────
   Battleaxe: {
+    name: "Battleaxe",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d8 slashing",
@@ -177,6 +193,7 @@ export const weaponShieldData = {
     desc: ["A heavier axe built for combat. Two hands deliver stronger blows."],
   },
   Flail: {
+    name: "Flail",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d8 bludgeoning",
@@ -186,6 +203,7 @@ export const weaponShieldData = {
     desc: ["A spiked ball on a chain, designed to strike around defenses."],
   },
   Glaive: {
+    name: "Glaive",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d10 slashing",
@@ -195,6 +213,7 @@ export const weaponShieldData = {
     desc: ["A long polearm with a blade. Keeps foes at bay with reach."],
   },
   Greataxe: {
+    name: "Greataxe",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d12 slashing",
@@ -204,6 +223,7 @@ export const weaponShieldData = {
     desc: ["A massive axe that hits extremely hard—best used with two hands."],
   },
   Greatsword: {
+    name: "Greatsword",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "2d6 slashing",
@@ -213,6 +233,7 @@ export const weaponShieldData = {
     desc: ["A huge blade that deals consistent heavy damage."],
   },
   Halberd: {
+    name: "Halberd",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d10 slashing",
@@ -222,6 +243,7 @@ export const weaponShieldData = {
     desc: ["A polearm combining axe and spear features."],
   },
   Lance: {
+    name: "Lance",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d12 piercing",
@@ -235,6 +257,7 @@ export const weaponShieldData = {
     ],
   },
   Longsword: {
+    name: "Longsword",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d8 slashing",
@@ -245,6 +268,7 @@ export const weaponShieldData = {
     desc: ["A classic blade favored by soldiers and knights."],
   },
   Maul: {
+    name: "Maul",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "2d6 bludgeoning",
@@ -254,6 +278,7 @@ export const weaponShieldData = {
     desc: ["A massive two-handed hammer for crushing blows."],
   },
   Morningstar: {
+    name: "Morningstar",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d8 piercing",
@@ -263,6 +288,7 @@ export const weaponShieldData = {
     desc: ["A spiked mace designed to puncture armor."],
   },
   Pike: {
+    name: "Pike",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d10 piercing",
@@ -272,6 +298,7 @@ export const weaponShieldData = {
     desc: ["An exceptionally long spear, mainly for formation fighting."],
   },
   Rapier: {
+    name: "Rapier",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d8 piercing",
@@ -281,6 +308,7 @@ export const weaponShieldData = {
     desc: ["A duelist’s weapon—quick, precise, and lethal."],
   },
   Scimitar: {
+    name: "Scimitar",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d6 slashing",
@@ -290,6 +318,7 @@ export const weaponShieldData = {
     desc: ["A curved blade that rewards speed and agility."],
   },
   Shortsword: {
+    name: "Shortsword",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d6 piercing",
@@ -299,6 +328,7 @@ export const weaponShieldData = {
     desc: ["A light blade, ideal for dual-wielding and quick strikes."],
   },
   Trident: {
+    name: "Trident",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d6 piercing",
@@ -309,6 +339,7 @@ export const weaponShieldData = {
     desc: ["A three-pronged spear that can be thrown or used in melee."],
   },
   Warhammer: {
+    name: "Warhammer",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d8 bludgeoning",
@@ -319,6 +350,7 @@ export const weaponShieldData = {
     desc: ["A hammer built for war—excellent against armored enemies."],
   },
   Whip: {
+    name: "Whip",
     kind: "Weapon",
     category: "Martial Melee",
     damage: "1d4 slashing",
@@ -332,6 +364,7 @@ export const weaponShieldData = {
   // MARTIAL RANGED
   // ─────────────────────────────
   Blowgun: {
+    name: "Blowgun",
     kind: "Weapon",
     category: "Martial Ranged",
     damage: "1 piercing",
@@ -341,6 +374,7 @@ export const weaponShieldData = {
     desc: ["A silent ranged weapon. Low damage, but thematically deadly."],
   },
   HandCrossbow: {
+    name: "Hand Crossbow",
     aliases: ["Hand Crossbow"],
     kind: "Weapon",
     category: "Martial Ranged",
@@ -351,6 +385,7 @@ export const weaponShieldData = {
     desc: ["A small crossbow usable with one hand."],
   },
   HeavyCrossbow: {
+    name: "Heavy Crossbow",
     aliases: ["Heavy Crossbow"],
     kind: "Weapon",
     category: "Martial Ranged",
@@ -361,6 +396,7 @@ export const weaponShieldData = {
     desc: ["A powerful crossbow with exceptional range and damage."],
   },
   Longbow: {
+    name: "Longbow",
     kind: "Weapon",
     category: "Martial Ranged",
     damage: "1d8 piercing",
