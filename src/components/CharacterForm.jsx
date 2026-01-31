@@ -6,6 +6,7 @@ const initialFormData = {
   class: "",
   subClass: "",
   alignment: "",
+  deity: "",
   specialAbility: "",
   familiar: "None",
   bio: "",
@@ -53,7 +54,7 @@ export default function CharacterForm({ addCharacter }) {
     </legend>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {["name", "race", "class", "subClass", "alignment", "specialAbility"].map(
+          {["name", "race", "class", "subClass", "alignment", "deity", "specialAbility"].map(
             (field) => (
               <div key={field}>
                 <label className="font-bold capitalize">{field}:</label>

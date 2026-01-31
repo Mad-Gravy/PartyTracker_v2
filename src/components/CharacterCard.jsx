@@ -132,6 +132,7 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
     class: character.class || "",
     subClass: character.subClass || "",
     alignment: character.alignment || "",
+    deity: character.deity || "",
     specialAbility: character.specialAbility || "",
     familiar: character.familiar || "None",
     bio: character.bio || "",
@@ -343,6 +344,10 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                     <input type="text" name="alignment" value={details.alignment} onChange={handleDetailChange} className="border rounded w-full p-1 mt-1 text-sm" />
                   </div>
                   <div>
+                    <label className="font-bold">DEITY:</label>
+                    <input type="text" name="deity" value={details.deity} onChange={handleDetailChange} className="border rounded w-full p-1 mt-1 text-sm" />
+                  </div>
+                  <div>
                     <label className="font-bold">CLASS:</label>
                     <input type="text" name="class" value={details.class} onChange={handleDetailChange} className="border rounded w-full p-1 mt-1 text-sm" />
                   </div>
@@ -379,6 +384,9 @@ export default function CharacterCard({ character, onDelete, onUpdate }) {
                   </p>
                   <p>
                     <strong>ALIGNMENT:</strong> {details.alignment}
+                  </p>
+                  <p>
+                    <strong>DEITY:</strong> {details.deity}
                   </p>
                   <p>
                     <strong>SPECIAL ABILITY:</strong> {details.specialAbility}
